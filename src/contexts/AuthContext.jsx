@@ -1,58 +1,40 @@
-// src/contexts/AuthContext.jsx
 import React, { createContext, useState, useEffect } from 'react';
-import { getAuthToken, getUser } from '../utils/storage';
+import { useNavigate } from 'react-router-dom';
+import { getCurrentUser, isAuthenticated, logout } from '../services/auth';
 
-// Create Auth Context
-export const AuthContext = createContext();
+export const AuthContext = createContext(null);
 
-const AuthProvider = ({ children }) => {
+export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const navigate = useNavigate();
 
-  // Load auth state from storage when component mounts
   useEffect(() => {
-    const loadAuthState = () => {
-      try {
-        const storedToken = getAuthToken();
-        const storedUser = getUser();
-        
-        if (storedToken && storedUser) {
-          setToken(storedToken);
-          setUser(storedUser);
-          setIsAuthenticated(true);
-        }
-      } catch (err) {
-        console.error('Error loading auth state:', err);
-      } finally {
-        setLoading(false);
+    const checkAuth = () => {
+      if (isAuthenticated()) {
+        setUser(getCurrentUser());
       }
+      setLoading(false);
     };
 
-    loadAuthState();
+    checkAuth();
   }, []);
 
-  // Auth context value
-  const contextValue = {
-    user,
-    token,
-    isAuthenticated,
-    loading,
-    error,
-    setUser,
-    setToken,
-    setIsAuthenticated,
-    setLoading,
-    setError
+  const login = (userData) => {
+    setUser(userData);
+  };
+
+  const handleLogout = () => {
+    logout();
+    setUser(null);
+    navigate('/login');
   };
 
   return (
-    <AuthContext.Provider value={contextValue}>
+    <AuthContext.Provider value={{ user, login, logout: handleLogout, loading }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-export default AuthProvider;
+export default AuthContext;
